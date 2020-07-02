@@ -1,102 +1,86 @@
 package encryptdecrypt;
 
-import java.util.Arrays;
+import java.io.*;
+import java.util.Scanner;
 
 public class Main {
+
     public static void main(String[] args) {
         String message = "";
         int key = 0;
+        boolean stdInputFlag = false;
         boolean encryptionMode = false;
+        boolean useUnicode = false;
+        String outputFile = "";
+
+        boolean running = true;
 
         for (int i = 0; i < args.length; i++) {
             switch (args[i]) {
                 case "-mode":
-                    switch (args[i + 1]) {
-                        case "enc":
-                            encryptionMode = true;
-                            break;
-                        case "dec":
-                            encryptionMode = false;
-                            break;
-                    }
+                    encryptionMode = args[i + 1].equals("enc");
                     break;
+
+                case "-alg":
+                    useUnicode = args[i + 1].equals("unicode");
+                    break;
+
                 case "-key":
                     key = Integer.parseInt(args[i + 1]);
                     break;
 
                 case "-data":
                     message = args[i + 1];
+                    stdInputFlag = true;
+                    break;
+
+                case "-out":
+                    outputFile = args[i + 1];
+                    break;
+
+                case "-in":
+                    message = stdInputFlag ? message : args[i + 1];
                     break;
             }
         }
 
-        message = processMessage(message, key, encryptionMode);
+        File inputFile = new File(message);
 
-        System.out.println(message);
-    }
+        if (!message.isEmpty() || inputFile.exists()) {
 
-    public static String processMessage(String inputMessage, int key, boolean isEncrypt) {
-        char[] message = inputMessage.toCharArray();
-
-        if (isEncrypt) {
-            for (int i = 0; i < message.length; i++) {
-                message[i] = encryptCharacter(message[i], key);
-            }
-        } else {
-            for (int i = 0; i < message.length; i++) {
-                message[i] = decryptCharacter(message[i], key);
-            }
-        }
-
-        return String.valueOf(message);
-    }
-
-    private static char encryptCharacter(char character, int key) {
-
-        /* final char[] letters = {'A', 'B', 'C', 'D', 'E',
-                'F', 'G', 'H', 'I', 'J',
-                'K', 'L', 'M', 'N', 'O',
-                'P', 'Q', 'R', 'S', 'T', 'U',
-                'V', 'W', 'X', 'Y', 'Z'};
-        int charIndex = 0;
-        boolean isLetter = Character.toString(character).matches("[a-zA-Z]");
-        boolean isLowerCase = Character.toString(character).matches("[a-z]");
-
-        if (isLetter) {
-            for (int i = 0; i < 26; i++) {
-                if (letters[i] == Character.toUpperCase(character)) {
-                    charIndex = i;
-                    break;
+            if (!stdInputFlag) {
+                try {
+                    Scanner scanner = new Scanner(inputFile);
+                    message = scanner.nextLine();
+                    scanner.close();
+                } catch (FileNotFoundException e) {
+                    System.out.println("Error: File Not Found");
+                    running = false;
                 }
+
+                if (running && !message.isEmpty()) {
+                    Algorithm algorithm = useUnicode ? new UnicodeAlgorithm(key) : new ShiftAlgorithm(key);
+
+                    if (encryptionMode) {
+                        message = algorithm.encryptMessage(message);
+                    } else {
+                        message = algorithm.decryptMessage(message);
+                    }
+
+                    if (outputFile.isEmpty()) {
+                        System.out.println(message);
+                    } else {
+                        try (FileWriter writer = new FileWriter(outputFile)) {
+                            writer.write(message + "\n");
+                        } catch (IOException e) {
+                            System.out.println("There was an error writing to the file: " + e.getMessage());
+                        }
+                    }
+                }
+            } else {
+                System.out.println("Error: Input is empty");
             }
-            char returnVal = letters[(charIndex + key) % 26];
-            return isLowerCase ? Character.toLowerCase(returnVal) : returnVal;
         }
-        else {
-            return character;
-        } */
-
-        int characterValue = (int) character + key;
-        return (char) characterValue;
     }
-
-    private static char decryptCharacter(char character, int key) {
-       /* final char[] letters = {'A', 'B', 'C', 'D', 'E',
-                'F', 'G', 'H', 'I', 'J',
-                'K', 'L', 'M', 'N', 'O',
-                'P', 'Q', 'R', 'S', 'T', 'U',
-                'V', 'W', 'X', 'Y', 'Z'};
-        int charIndex = 0;
-        boolean isLetter = Character.toString(character).matches("[a-zA-Z]");
-        boolean isLowerCase = Character.toString(character).matches("[a-z]");
-
-        //char returnVal = letters[(((charIndex - key) % 26) + 26) % 26];
-        return isLowerCase ? Character.toLowerCase(returnVal) : returnVal;
-        */
-
-        int characterValue = (int) character - key;
-        return (char) characterValue;
-    }
-
 
 }
